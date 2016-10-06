@@ -13,6 +13,7 @@ authors = ["paul@colomiets.name"]
 
 [dependencies]
 lazy_static = "0.2.1"
+atomic = "0.3.3"
 
 [lib]
 name = "libcantal"
