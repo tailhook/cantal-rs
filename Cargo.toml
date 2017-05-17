@@ -12,8 +12,10 @@ version = "0.1.0"
 authors = ["paul@colomiets.name"]
 
 [dependencies]
-lazy_static = "0.2.1"
 atomic = "0.3.3"
+
+[dev-dependencies]
+lazy_static = "0.2.1"
 
 [lib]
 name = "libcantal"
