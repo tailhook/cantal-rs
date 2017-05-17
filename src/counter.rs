@@ -1,27 +1,29 @@
 use std::fmt;
 use std::mem::transmute;
-use std::sync::atomic::{AtomicUsize, AtomicPtr, Ordering};
+use std::sync::atomic::{AtomicPtr, Ordering};
+
+use atomic::Atomic;
 
 pub struct Counter {
     #[allow(dead_code)]
-    value: Box<AtomicUsize>,
-    pointer: AtomicPtr<AtomicUsize>,
+    value: Box<Atomic<u64>>,
+    pointer: AtomicPtr<Atomic<u64>>,
 }
 
 impl Counter {
     pub fn new() -> Counter {
-        let tmp = Box::new(AtomicUsize::new(0));
+        let tmp = Box::new(Atomic::new(0));
         Counter {
             pointer: unsafe { transmute(&*tmp) },
             value: tmp,
         }
     }
-    pub fn incr(&self, val: usize) {
+    pub fn incr(&self, val: u64) {
         unsafe {
             &*self.pointer.load(Ordering::Relaxed)
         }.fetch_add(val, Ordering::Relaxed);
     }
-    pub fn get(&self) -> usize {
+    pub fn get(&self) -> u64 {
         unsafe {
             &*self.pointer.load(Ordering::Relaxed)
         }.load(Ordering::Relaxed)
