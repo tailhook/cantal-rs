@@ -1,5 +1,11 @@
 /// A structure used to serialize `Name` objects to submit to agent
-pub struct Serializer {
+pub struct Serializer<'a> {
+}
+
+impl<'a> Serializer<'a> {
+    pub fn add_pair(&mut self, key: &str, value: &str) {
+        unimplemented!();
+    }
 }
 
 
@@ -9,7 +15,7 @@ pub struct Serializer {
 /// the name, but it might be more efficient to have a structure as a name
 /// and used static strings as key names instead.
 pub trait Name {
-    fn get_key(&self, key: &str) -> &str;
+    fn get_key(&self, key: &str) -> Option<&str>;
     fn serialize(&self, s: &mut Serializer);
 }
 
