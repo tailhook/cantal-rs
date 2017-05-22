@@ -4,6 +4,9 @@ use std::sync::atomic::{AtomicPtr, Ordering};
 
 use atomic::Atomic;
 
+use value::Value;
+
+
 pub struct Counter {
     #[allow(dead_code)]
     value: Box<Atomic<u64>>,
@@ -37,4 +40,7 @@ impl fmt::Display for Counter {
             &*self.pointer.load(Ordering::Relaxed)
         }.load(Ordering::Relaxed))
     }
+}
+
+impl Value for Counter {
 }

@@ -4,6 +4,9 @@ use std::sync::atomic::{AtomicPtr, Ordering};
 
 use atomic::Atomic;
 
+use value::Value;
+
+
 pub struct Integer {
     #[allow(dead_code)]
     value: Box<Atomic<i64>>,
@@ -47,4 +50,7 @@ impl fmt::Display for Integer {
             &*self.pointer.load(Ordering::Relaxed)
         }.load(Ordering::Relaxed))
     }
+}
+
+impl Value for Integer {
 }
