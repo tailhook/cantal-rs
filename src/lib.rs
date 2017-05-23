@@ -18,6 +18,6 @@ mod integer;
 pub use collection::{Collection, start, cleanup, context};
 pub use counter::Counter;
 pub use integer::Integer;
-pub use name::{Serializer, Name};
+pub use name::{NameVisitor, Name};
 pub use print::print;
 pub use value::Value;

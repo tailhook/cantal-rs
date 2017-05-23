@@ -2,10 +2,11 @@ use std::env;
 use std::path::{Path, PathBuf};
 
 use name::Name;
-
 use value::Value;
 
+
 pub trait Visitor {
+    fn metric<N: Name, V: Value+?Sized>(&mut self, name: &N, value: &V);
 }
 
 pub trait Collection {
