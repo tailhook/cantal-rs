@@ -5,7 +5,7 @@ use std::sync::atomic::{AtomicPtr, Ordering};
 use atomic::Atomic;
 use serde_json;
 
-use value::Value;
+use value::{Value, RawType};
 
 
 pub struct Counter {
@@ -44,7 +44,8 @@ impl fmt::Display for Counter {
 }
 
 impl Value for Counter {
-    fn type_name(&self) -> &str { "Counter" }
+    fn raw_type(&self) -> RawType { RawType::Counter }
+    fn raw_size(&self) -> usize { 8 }
     fn as_json(&self) -> serde_json::Value {
         serde_json::Value::Number(self.get().into())
     }

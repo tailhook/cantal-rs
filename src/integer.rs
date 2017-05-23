@@ -5,7 +5,7 @@ use std::sync::atomic::{AtomicPtr, Ordering};
 use atomic::Atomic;
 use serde_json;
 
-use value::Value;
+use value::{Value, RawType, LevelKind};
 
 
 pub struct Integer {
@@ -54,7 +54,8 @@ impl fmt::Display for Integer {
 }
 
 impl Value for Integer {
-    fn type_name(&self) -> &str { "Integer" }
+    fn raw_type(&self) -> RawType { RawType::Level(LevelKind::Signed) }
+    fn raw_size(&self) -> usize { 8 }
     fn as_json(&self) -> serde_json::Value {
         serde_json::Value::Number(self.get().into())
     }

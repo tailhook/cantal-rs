@@ -15,7 +15,7 @@ struct JsonNameVisitor<'a, Ok, E, S>(&'a mut S, &'a mut Option<E>)
     where E: Error + 'a,
           S: SerializeMap<Ok=Ok, Error=E> + 'a;
 
-struct JsonName<'a>(&'a Name);
+pub struct JsonName<'a>(pub &'a Name);
 struct JsonValue<'a>(&'a Value);
 
 impl<'a, Ok, E, S> NameVisitor for JsonNameVisitor<'a, Ok, E, S>
@@ -54,7 +54,7 @@ impl<'a> Serialize for JsonValue<'a> {
         where S: Serializer
     {
         let mut seq = serializer.serialize_seq(Some(2))?;
-        seq.serialize_element(self.0.type_name())?;
+        seq.serialize_element(self.0.raw_type().as_json_str())?;
         seq.serialize_element(&self.0.as_json())?;
         seq.end()
     }
