@@ -9,7 +9,7 @@ use value::Value;
 
 struct PrintVisitor<'a, W: Write + ?Sized + 'a>(&'a mut W);
 
-struct NameFormatter<'a, N: Name + 'a>(&'a N);
+struct NameFormatter<'a, N: Name + ?Sized + 'a>(&'a N);
 struct FmtSerializer<'a: 'b, 'b>(fmt::DebugMap<'b, 'a>);
 
 impl<'a, 'b> NameVisitor for FmtSerializer<'a, 'b> {
@@ -18,7 +18,7 @@ impl<'a, 'b> NameVisitor for FmtSerializer<'a, 'b> {
     }
 }
 
-impl<'a, N: Name + 'a> fmt::Display for NameFormatter<'a, N> {
+impl<'a, N: Name + ?Sized + 'a> fmt::Display for NameFormatter<'a, N> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut s = FmtSerializer(f.debug_map());
         self.0.visit(&mut s);
@@ -28,7 +28,7 @@ impl<'a, N: Name + 'a> fmt::Display for NameFormatter<'a, N> {
 
 
 impl<'a, W: Write + 'a> Visitor for PrintVisitor<'a, W> {
-    fn metric<N: Name, V: Value+?Sized>(&mut self, name: &N, value: &V)
+    fn metric(&mut self, name: &Name, value: &Value)
     {
         println!("{} {}", NameFormatter(name), value);
     }

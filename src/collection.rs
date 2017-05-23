@@ -6,11 +6,11 @@ use value::Value;
 
 
 pub trait Visitor {
-    fn metric<N: Name, V: Value+?Sized>(&mut self, name: &N, value: &V);
+    fn metric(&mut self, name: &Name, value: &Value);
 }
 
 pub trait Collection {
-    fn visit<V: Visitor>(&self, visitor: &mut V);
+    fn visit(&self, visitor: &mut Visitor);
 }
 
 /// Start publishing metrics
