@@ -13,6 +13,12 @@ pub trait Collection {
     fn visit(&self, visitor: &mut Visitor);
 }
 
+impl<'a> Collection for &'a Collection {
+    fn visit(&self, visitor: &mut Visitor) {
+        (*self).visit(visitor)
+    }
+}
+
 /// Start publishing metrics
 #[cfg(unix)]
 pub fn start<T: Collection>(coll: T) -> PathBuf {
