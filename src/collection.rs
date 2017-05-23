@@ -18,6 +18,11 @@ impl<'a> Collection for &'a Collection {
         (*self).visit(visitor)
     }
 }
+impl<'a, T: Collection + 'a> Collection for &'a T {
+    fn visit(&self, visitor: &mut Visitor) {
+        (*self).visit(visitor)
+    }
+}
 
 /// Start publishing metrics
 #[cfg(unix)]

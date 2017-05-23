@@ -10,9 +10,9 @@ use value::Value;
 struct PrintVisitor<'a, W: Write + ?Sized + 'a>(&'a mut W);
 
 struct NameFormatter<'a, N: Name + ?Sized + 'a>(&'a N);
-struct FmtSerializer<'a: 'b, 'b>(fmt::DebugMap<'b, 'a>);
+struct FmtVisitor<'a: 'b, 'b>(fmt::DebugMap<'b, 'a>);
 
-impl<'a, 'b> NameVisitor for FmtSerializer<'a, 'b> {
+impl<'a, 'b> NameVisitor for FmtVisitor<'a, 'b> {
     fn visit_pair(&mut self, key: &str, value: &str) {
         self.0.entry(&key, &value);
     }
@@ -20,7 +20,7 @@ impl<'a, 'b> NameVisitor for FmtSerializer<'a, 'b> {
 
 impl<'a, N: Name + ?Sized + 'a> fmt::Display for NameFormatter<'a, N> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let mut s = FmtSerializer(f.debug_map());
+        let mut s = FmtVisitor(f.debug_map());
         self.0.visit(&mut s);
         s.0.finish()
     }

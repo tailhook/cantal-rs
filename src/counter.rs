@@ -3,6 +3,7 @@ use std::mem::transmute;
 use std::sync::atomic::{AtomicPtr, Ordering};
 
 use atomic::Atomic;
+use serde_json;
 
 use value::Value;
 
@@ -43,4 +44,8 @@ impl fmt::Display for Counter {
 }
 
 impl Value for Counter {
+    fn type_name(&self) -> &str { "Counter" }
+    fn as_json(&self) -> serde_json::Value {
+        serde_json::Value::Number(self.get().into())
+    }
 }
