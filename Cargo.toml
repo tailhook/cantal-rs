@@ -6,6 +6,7 @@ description = """
 license = "MIT/Apache-2.0"
 readme = "README.rst"
 keywords = ["linux", "monitoring", "meter"]
+categories = ["api-bindings"]
 homepage = "http://github.com/tailhook/libcantal"
 documentation = "http://tailhook.github.io/libcantal/"
 version = "0.1.0"
