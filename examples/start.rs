@@ -22,10 +22,11 @@ fn main() {
     }
     env_logger::init().unwrap();
 
-    let _coll = start(&[
+    let metrics = [
         (json!({"metric": "counter"}), &*COUNTER as &Value),
         (json!({"metric": "integer"}), &*INTEGER as &Value),
-    ][..]).expect("cantal works");
+    ];
+    let _coll = start(&metrics[..]).expect("cantal works");
     loop {
         COUNTER.incr(1);
         INTEGER.set((COUNTER.get() / 7) as i64);

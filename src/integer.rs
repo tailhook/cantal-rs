@@ -3,9 +3,10 @@ use std::mem::transmute;
 use std::sync::atomic::{AtomicPtr, Ordering};
 
 use atomic::Atomic;
+use libc::c_void;
 use serde_json;
 
-use value::{Value, RawType, LevelKind};
+use value::{Value, RawType, LevelKind, Assign};
 
 
 pub struct Integer {
@@ -58,5 +59,15 @@ impl Value for Integer {
     fn raw_size(&self) -> usize { 8 }
     fn as_json(&self) -> serde_json::Value {
         serde_json::Value::Number(self.get().into())
+    }
+}
+
+impl Assign for Integer {
+    fn assign(&self, ptr: *mut c_void) {
+        self.pointer.store(unsafe { transmute(ptr) }, Ordering::SeqCst);
+    }
+    fn reset(&self) {
+        self.pointer.store(unsafe { transmute(&*self.value) },
+                           Ordering::SeqCst);
     }
 }

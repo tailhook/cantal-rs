@@ -27,14 +27,14 @@ impl<'a, N: Name + ?Sized + 'a> fmt::Display for NameFormatter<'a, N> {
 }
 
 
-impl<'a, W: Write + 'a> Visitor for PrintVisitor<'a, W> {
+impl<'a, 'b, W: Write + 'a> Visitor<'b> for PrintVisitor<'a, W> {
     fn metric(&mut self, name: &Name, value: &Value)
     {
         println!("{} {}", NameFormatter(name), value);
     }
 }
 
-pub fn print<C: Collection, W: Write>(col: C, mut out: W) -> io::Result<()> {
+pub fn print<C: Collection + ?Sized, W: Write>(col: &C, mut out: W) -> io::Result<()> {
     col.visit(&mut PrintVisitor(&mut out));
     Ok(())
 }

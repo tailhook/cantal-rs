@@ -1,8 +1,6 @@
-use std::collections::HashMap;
 use std::env;
-use std::fmt::Write;
-use std::fs::{File, remove_file, rename};
-use std::io;
+use std::fs::{OpenOptions, remove_file, rename};
+use std::io::{self, Write};
 use std::os::unix::io::AsRawFd;
 use std::path::{Path, PathBuf};
 use std::ptr;
@@ -15,18 +13,19 @@ use value::{Value, RawType};
 use json::JsonName;
 
 
-pub trait Visitor {
-    fn metric(&mut self, name: &Name, value: &Value);
+pub trait Visitor<'a> {
+    fn metric(&mut self, name: &Name, value: &'a Value);
 }
 
 pub trait Collection {
-    fn visit(&self, visitor: &mut Visitor);
+    fn visit<'x>(&'x self, visitor: &mut Visitor<'x>);
 }
 
 #[cfg(unix)]
-pub struct ActiveCollection {
+pub struct ActiveCollection<'a> {
     values_path: PathBuf,
     meta_path: PathBuf,
+    metrics: Vec<&'a Value>,
     mmap: *mut libc::c_void,
     mmap_size: usize,
 }
@@ -53,17 +52,16 @@ quick_error! {
             description("Can't mmap file")
             cause(err)
         }
-    }
-}
-
-impl<'a> Collection for &'a Collection {
-    fn visit(&self, visitor: &mut Visitor) {
-        (*self).visit(visitor)
-    }
-}
-impl<'a, T: Collection + 'a> Collection for &'a T {
-    fn visit(&self, visitor: &mut Visitor) {
-        (*self).visit(visitor)
+        Rename(path: PathBuf, err: io::Error) {
+            display("Can't rename file to {:?}: {}", path, err)
+            description("Can't rename file")
+            cause(err)
+        }
+        WriteMetadata(path: PathBuf, err: io::Error) {
+            display("Can't write metadata to {:?}: {}", path, err)
+            description("Can't write metadata")
+            cause(err)
+        }
     }
 }
 
@@ -115,19 +113,25 @@ fn remove_if_exists(path: &Path) -> Result<(), Error> {
     }
 }
 
+#[cfg(unix)]
+
 /// Start publishing metrics
 #[cfg(unix)]
-pub fn start<T: Collection>(coll: T) -> Result<ActiveCollection, Error> {
+pub fn start<'x, T: Collection + ?Sized>(coll: &'x T)
+    -> Result<ActiveCollection<'x>, Error>
+{
     use self::ErrorEnum::*;
 
-    struct Metric {
+    struct Metric<'a> {
         name: String,
         raw_type: RawType,
         size: usize,
+        pointer: &'a Value,
     }
-    struct ListVisitor<'a>(&'a mut Vec<Metric>);
-    impl<'a> Visitor for ListVisitor<'a> {
-        fn metric(&mut self, name: &Name, value: &Value)
+    struct ListVisitor<'a, 'b: 'a, 'c: 'a>(&'a mut Vec<Metric<'b>>,
+        &'a mut Vec<&'c Value>, &'a mut usize);
+    impl<'a, 'b: 'a, 'c: 'a> Visitor<'b> for ListVisitor<'a, 'b, 'c> {
+        fn metric(&mut self, name: &Name, value: &'b Value)
         {
             self.0.push(Metric {
                 // must have all keys sorted
@@ -136,32 +140,21 @@ pub fn start<T: Collection>(coll: T) -> Result<ActiveCollection, Error> {
                     .expect("can always serialize"),
                 raw_type: value.raw_type(),
                 size: value.raw_size(),
-            })
+                pointer: value,
+            });
+            *self.2 += value.raw_size();
         }
     }
 
+    let mut values_size = 0;
+    let mut pointers = Vec::new();
     let mut all_metrics = Vec::with_capacity(100);
-    coll.visit(&mut ListVisitor(&mut all_metrics));
+    coll.visit(&mut ListVisitor(&mut all_metrics, &mut pointers,
+                                &mut values_size));
 
     // TODO(tailhook) sort metrics by size class
-
-    let mut offset = 0;
-    let mut metadata_buf = String::with_capacity(4096);
-    let mut offsets = HashMap::new();
-    for metric in &all_metrics {
-        // must have all keys sorted
-        write!(metadata_buf, "{main_type} {size}{space}{type_suffix}: {key}",
-            main_type=metric.raw_type.main_type(),
-            size=metric.size,
-            space=if metric.raw_type.type_suffix().is_some() { " " } else {""},
-            type_suffix=metric.raw_type.type_suffix().unwrap_or(""),
-            key=metric.name)
-        .expect("Can always write into buffer");
-        offsets.insert(&metric.name, offset);
-        offset += metric.size;
-    }
     // TODO(tailhook) find out real page size
-    let values_size = offset + offset & 4095;
+    values_size = (values_size + 4095) & !4095;
 
     let (dir, name) = path_from_env();
     let tmp_path = dir.join(format!("{}.tmp", name));
@@ -171,7 +164,9 @@ pub fn start<T: Collection>(coll: T) -> Result<ActiveCollection, Error> {
     remove_if_exists(&values_path)?;
     remove_if_exists(&meta_path)?;
 
-    let values_file = File::create(&tmp_path)
+    let values_file = OpenOptions::new()
+        .read(true).write(true).create_new(true)
+        .open(&tmp_path)
         .map_err(|e| Create(tmp_path.clone(), e))?;
     values_file.set_len(values_size as u64)
         .map_err(|e| Create(tmp_path.clone(), e))?;
@@ -182,7 +177,7 @@ pub fn start<T: Collection>(coll: T) -> Result<ActiveCollection, Error> {
             values_file.as_raw_fd(),
             0)
     };
-    if ptr == ptr::null_mut() {
+    if ptr == libc::MAP_FAILED {
         let err = io::Error::last_os_error();
         remove_file(&tmp_path).map_err(|e| {
             error!("Can't unlink path {:?}: {}", tmp_path, e);
@@ -190,49 +185,61 @@ pub fn start<T: Collection>(coll: T) -> Result<ActiveCollection, Error> {
         return Err(Mmap(tmp_path, err, values_size).into());
     }
 
-    let mut current_values = Vec::new();
-
-    struct AssignVisitor<'a>(HashMap<&'a String, usize>, *mut libc::c_void);
-    impl<'a> Visitor for AssignVisitor<'a> {
-        fn metric(&mut self, name: &Name, value: &Value)
-        {
-            let key =
-                // must have all keys sorted
-                to_string(&to_value(JsonName(name))
-                    .expect("can always serialize"))
-                    .expect("can always serialize");
-            let off = self.0.get(key)
-                .expect("collection has not changed during assignment");
-            assign(value, self.1 + off);
-        }
-    }
-
-    coll.visit(&mut AssignVisitor(offsets, ptr));
-
-    let result = rename(&tmp_path, &values_path);
-
-    Ok(ActiveCollection {
+    // Create our unmap/reset guard before setting actual pointers
+    let result = ActiveCollection {
         meta_path: meta_path,
         values_path: values_path,
+        metrics: pointers,
         mmap: ptr,
         mmap_size: values_size,
-    })
+    };
+
+    let mut offset = 0;
+    let mut metadata_buf = String::with_capacity(4096);
+    let mut pointers = Vec::new();
+    for metric in all_metrics {
+        use std::fmt::Write;
+        write!(metadata_buf, "{main_type} {size}{space}{type_suffix}: {key}\n",
+            main_type=metric.raw_type.main_type(),
+            size=metric.size,
+            space=if metric.raw_type.type_suffix().is_some() { " " } else {""},
+            type_suffix=metric.raw_type.type_suffix().unwrap_or(""),
+            key=metric.name)
+            .expect("Can always write into buffer");
+        metric.pointer.assign(unsafe { ptr.offset(offset as isize) });
+        offset += metric.size;
+        pointers.push(metric.pointer);
+    }
+
+    rename(&tmp_path, &result.values_path)
+        .map_err(|e| Rename(result.values_path.clone(), e))?;
+    OpenOptions::new().write(true).create_new(true)
+        .open(&tmp_path)
+        .and_then(|mut f| f.write_all(metadata_buf.as_bytes()))
+        .map_err(|e| WriteMetadata(tmp_path.clone(), e))?;
+    rename(&tmp_path, &result.meta_path)
+        .map_err(|e| Rename(result.meta_path.clone(), e))?;
+
+    Ok(result)
 }
 
 /// Start publishing metrics
 ///
 /// Currently it's noop on windows
 #[cfg(windows)]
-pub fn start<T: Collection>(_coll: Collection)
-    -> Result<ActiveCollection, Error>
+pub fn start<'x, T: Collection + ?Sized>(coll: &'x T)
+    -> Result<ActiveCollection<'x>, Error>
 {
     // TODO(tailhook) maybe always put into temporary directory?
     ActiveCollection {}
 }
 
 #[cfg(unix)]
-impl Drop for ActiveCollection {
+impl<'a> Drop for ActiveCollection<'a> {
     fn drop(&mut self) {
+        for m in &self.metrics {
+            m.reset();
+        }
         let rc = unsafe { libc::munmap(self.mmap, self.mmap_size) };
         if rc != 0 {
             let err = io::Error::last_os_error();

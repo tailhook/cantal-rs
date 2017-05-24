@@ -12,6 +12,14 @@ commands:
 
 containers:
 
+  cantal-cli:
+    setup:
+    - !EnsureDir /bin
+    - !Tar
+      url: https://github.com/tailhook/cantal/files/228247/cantal-cli-v0.4.2.tar.gz
+      path: /bin
+      sha256: 069fc464eb5d9c6b1d77f016b963c80ac7b210cc116f15cbde3b92d8ad4e4790
+
   ubuntu:
     setup:
     - !Ubuntu trusty

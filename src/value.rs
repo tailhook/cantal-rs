@@ -1,5 +1,6 @@
 use std::fmt::Display;
 
+use libc::c_void;
 use serde_json;
 
 pub enum LevelKind {
@@ -13,10 +14,15 @@ pub enum RawType {
     State,
 }
 
-pub trait Value: Display {
+pub trait Value: Display + Assign {
     fn raw_type(&self) -> RawType;
     fn raw_size(&self) -> usize;
     fn as_json(&self) -> serde_json::Value;
+}
+
+pub trait Assign {
+    fn assign(&self, ptr: *mut c_void);
+    fn reset(&self);
 }
 
 impl RawType {

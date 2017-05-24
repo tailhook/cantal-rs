@@ -5,7 +5,7 @@ use name::{Name, NameVisitor};
 use value::Value;
 
 
-pub struct Json<T: Collection>(pub T);
+pub struct Json<'a, T: Collection + ?Sized + 'a>(pub &'a T);
 
 struct JsonVisitor<'a, Ok, E, S>(&'a mut S, &'a mut Option<E>)
     where E: Error + 'a,
@@ -61,7 +61,7 @@ impl<'a> Serialize for JsonValue<'a> {
 }
 
 
-impl<'a, Ok, E, S> Visitor for JsonVisitor<'a, Ok, E, S>
+impl<'a, 'b, Ok, E, S> Visitor<'b> for JsonVisitor<'a, Ok, E, S>
     where E: Error,
           S: SerializeSeq<Ok=Ok, Error=E> + 'a,
 {
@@ -79,7 +79,7 @@ impl<'a, Ok, E, S> Visitor for JsonVisitor<'a, Ok, E, S>
     }
 }
 
-impl<T: Collection> Serialize for Json<T> {
+impl<'a, T: Collection + ?Sized + 'a> Serialize for Json<'a, T> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
         where S: Serializer
     {
