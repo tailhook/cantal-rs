@@ -34,6 +34,9 @@ impl<'a, 'b, W: Write + 'a> Visitor<'b> for PrintVisitor<'a, W> {
     }
 }
 
+/// Print all metrics of a collection to a file
+///
+/// Useful mostly for debugging
 pub fn print<C: Collection + ?Sized, W: Write>(col: &C, mut out: W) -> io::Result<()> {
     col.visit(&mut PrintVisitor(&mut out));
     Ok(())

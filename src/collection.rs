@@ -13,14 +13,24 @@ use value::{Value, RawType};
 use json::JsonName;
 
 
+/// A trait used to enumerate a collection
 pub trait Visitor<'a> {
+    /// Report a metric that belongs to a collection
     fn metric(&mut self, name: &Name, value: &'a Value);
 }
 
+/// A collection of metrics
+///
+/// A single collection is usually exported by a process but a vector or
+/// slice of collections is also a collections, so they can be combined easily.
 pub trait Collection {
+    /// Visit the whole collection, use visitor to report a metric
     fn visit<'x>(&'x self, visitor: &mut Visitor<'x>);
 }
 
+/// An active collection currently publishing metrics
+///
+/// It's basically a guard: if you drop it, metrics are not exported any more.
 #[cfg(unix)]
 pub struct ActiveCollection<'a> {
     values_path: PathBuf,
@@ -30,11 +40,20 @@ pub struct ActiveCollection<'a> {
     mmap_size: usize,
 }
 
+/// An active collection currently publishing metrics
+///
+/// It's basically a guard: if you drop it, metrics are not exported any more.
+///
+/// Note: not implemented for windows yet.
 #[cfg(windows)]
 pub struct ActiveCollection {
 }
 
 quick_error! {
+    /// Error of exporting metrics
+    ///
+    /// Can be triggered on ``cantal::start``. And may be ignored if metrics
+    /// are not crucial for the application.
     #[derive(Debug)]
     pub enum Error wraps ErrorEnum {
         Delete(path: PathBuf, err: io::Error) {

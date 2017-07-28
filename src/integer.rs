@@ -9,6 +9,7 @@ use serde_json;
 use value::{Value, RawType, LevelKind, Assign};
 
 
+/// A kind of metric (`Value`) that exports gauge with integer value
 pub struct Integer {
     #[allow(dead_code)]
     value: Box<Atomic<i64>>,
@@ -16,6 +17,10 @@ pub struct Integer {
 }
 
 impl Integer {
+    /// Create a new integer gauge value
+    ///
+    /// Note you need to export it in a collection to make it visible for
+    /// cantal agent
     pub fn new() -> Integer {
         let tmp = Box::new(Atomic::new(0));
         Integer {
@@ -23,21 +28,27 @@ impl Integer {
             value: tmp,
         }
     }
+    /// Increase the value of a gauge
     pub fn incr(&self, val: i64) {
         unsafe {
             &*self.pointer.load(Ordering::Relaxed)
         }.fetch_add(val, Ordering::Relaxed);
     }
+    /// Decrease the value of a gauge
     pub fn decr(&self, val: i64) {
         unsafe {
             &*self.pointer.load(Ordering::Relaxed)
         }.fetch_sub(val, Ordering::Relaxed);
     }
+    /// Set (replace) the value of a gauge
     pub fn set(&self, val: i64) {
         unsafe {
             &*self.pointer.load(Ordering::Relaxed)
         }.store(val, Ordering::Relaxed);
     }
+    /// Get current value of a gauge
+    ///
+    /// Note it works regardless of whether it's attached to a value
     pub fn get(&self) -> i64 {
         unsafe {
             &*self.pointer.load(Ordering::Relaxed)

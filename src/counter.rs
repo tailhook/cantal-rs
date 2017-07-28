@@ -9,6 +9,7 @@ use serde_json;
 use value::{Value, RawType, Assign};
 
 
+/// A kind of metric (`Value`) that exports ever-increasing counter
 pub struct Counter {
     #[allow(dead_code)]
     value: Box<Atomic<u64>>,
@@ -16,6 +17,10 @@ pub struct Counter {
 }
 
 impl Counter {
+    /// Create a new counter
+    ///
+    /// Note you need to export it in a collection to make it visible for
+    /// cantal agent
     pub fn new() -> Counter {
         let tmp = Box::new(Atomic::new(0));
         Counter {
@@ -23,11 +28,15 @@ impl Counter {
             value: tmp,
         }
     }
+    /// Increase a counter for ``val``
     pub fn incr(&self, val: u64) {
         unsafe {
             &*self.pointer.load(Ordering::Relaxed)
         }.fetch_add(val, Ordering::Relaxed);
     }
+    /// Get current value for counter
+    ///
+    /// Note it works regardless of whether it's attached to a value
     pub fn get(&self) -> u64 {
         unsafe {
             &*self.pointer.load(Ordering::Relaxed)

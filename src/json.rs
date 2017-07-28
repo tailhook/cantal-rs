@@ -5,6 +5,7 @@ use name::{Name, NameVisitor};
 use value::Value;
 
 
+/// A helper that allows to serialize a collection of metrics as JSON
 pub struct Json<'a, T: Collection + ?Sized + 'a>(pub &'a T);
 
 struct JsonVisitor<'a, Ok, E, S>(&'a mut S, &'a mut Option<E>)
