@@ -24,21 +24,22 @@ pub enum RawType {
 
 /// A value stored in a collection
 ///
-/// Usually you don't implement values yourself, as only selected kinds of
-/// metrics are supported by cantal agent, and all of them are implemented in
-/// this crate itself
-pub trait Value: Display + Assign {
+/// This is an umbrella trait that you can't implement outside of this crate.
+pub trait Value: Display + Describe + Assign {
+}
+
+pub trait Assign {
+    fn assign(&self, ptr: *mut c_void);
+    fn reset(&self);
+}
+
+pub trait Describe {
     /// Returns raw type (type as stored in the file)
     fn raw_type(&self) -> RawType;
     /// Returns the size in bytes for the type
     fn raw_size(&self) -> usize;
     /// Returns JSONified value of a metric
     fn as_json(&self) -> serde_json::Value;
-}
-
-pub trait Assign {
-    fn assign(&self, ptr: *mut c_void);
-    fn reset(&self);
 }
 
 impl RawType {

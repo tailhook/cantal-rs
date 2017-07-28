@@ -6,7 +6,7 @@ use atomic::Atomic;
 use libc::c_void;
 use serde_json;
 
-use value::{Value, RawType, LevelKind, Assign};
+use value::{Value, Describe, RawType, LevelKind, Assign};
 
 
 /// A kind of metric (`Value`) that exports gauge with integer value
@@ -65,7 +65,7 @@ impl fmt::Display for Integer {
     }
 }
 
-impl Value for Integer {
+impl Describe for Integer {
     fn raw_type(&self) -> RawType { RawType::Level(LevelKind::Signed) }
     fn raw_size(&self) -> usize { 8 }
     fn as_json(&self) -> serde_json::Value {
@@ -82,3 +82,4 @@ impl Assign for Integer {
                            Ordering::SeqCst);
     }
 }
+impl Value for Integer {}

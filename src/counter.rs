@@ -6,7 +6,7 @@ use atomic::Atomic;
 use libc::c_void;
 use serde_json;
 
-use value::{Value, RawType, Assign};
+use value::{Value, Describe, RawType, Assign};
 
 
 /// A kind of metric (`Value`) that exports ever-increasing counter
@@ -53,7 +53,7 @@ impl fmt::Display for Counter {
     }
 }
 
-impl Value for Counter {
+impl Describe for Counter {
     fn raw_type(&self) -> RawType { RawType::Counter }
     fn raw_size(&self) -> usize { 8 }
     fn as_json(&self) -> serde_json::Value {
@@ -70,3 +70,4 @@ impl Assign for Counter {
                            Ordering::SeqCst);
     }
 }
+impl Value for Counter {}
