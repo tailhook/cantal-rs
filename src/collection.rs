@@ -1,16 +1,17 @@
 use std::env;
 use std::fs::{OpenOptions, remove_file, rename};
 use std::io::{self, Write};
-use std::os::unix::io::AsRawFd;
 use std::path::{Path, PathBuf};
 use std::ptr;
 
 use libc;
 use serde_json::{to_string, to_value};
 
+use error::{Error, ErrorEnum};
 use name::Name;
 use value::{Value, RawType};
 use json::JsonName;
+use {ActiveCollection};
 
 
 /// A trait used to enumerate a collection
@@ -28,64 +29,8 @@ pub trait Collection {
     fn visit<'x>(&'x self, visitor: &mut Visitor<'x>);
 }
 
-/// An active collection currently publishing metrics
-///
-/// It's basically a guard: if you drop it, metrics are not exported any more.
 #[cfg(unix)]
-pub struct ActiveCollection<'a> {
-    values_path: PathBuf,
-    meta_path: PathBuf,
-    metrics: Vec<&'a Value>,
-    mmap: *mut libc::c_void,
-    mmap_size: usize,
-}
-
-/// An active collection currently publishing metrics
-///
-/// It's basically a guard: if you drop it, metrics are not exported any more.
-///
-/// Note: not implemented for windows yet.
-#[cfg(windows)]
-pub struct ActiveCollection {
-}
-
-quick_error! {
-    /// Error of exporting metrics
-    ///
-    /// Can be triggered on ``cantal::start``. And may be ignored if metrics
-    /// are not crucial for the application.
-    #[derive(Debug)]
-    pub enum Error wraps ErrorEnum {
-        Delete(path: PathBuf, err: io::Error) {
-            display("Can't delete file {:?}: {}", path, err)
-            description("Can't delete file")
-            cause(err)
-        }
-        Create(path: PathBuf, err: io::Error) {
-            display("Can't create file {:?}: {}", path, err)
-            description("Can't create file")
-            cause(err)
-        }
-        Mmap(path: PathBuf, err: io::Error, size: usize) {
-            display("Can't mmap file {:?} size {}: {}", path, size, err)
-            description("Can't mmap file")
-            cause(err)
-        }
-        Rename(path: PathBuf, err: io::Error) {
-            display("Can't rename file to {:?}: {}", path, err)
-            description("Can't rename file")
-            cause(err)
-        }
-        WriteMetadata(path: PathBuf, err: io::Error) {
-            display("Can't write metadata to {:?}: {}", path, err)
-            description("Can't write metadata")
-            cause(err)
-        }
-    }
-}
-
-#[cfg(unix)]
-fn configured_path() -> Option<(PathBuf, String)> {
+fn configured_path(warn: bool) -> Option<(PathBuf, String)> {
     env::var_os("CANTAL_PATH").and_then(|path| {
         let path = Path::new(&path);
         path.parent()
@@ -93,19 +38,21 @@ fn configured_path() -> Option<(PathBuf, String)> {
             .and_then(|x| x.to_str())
             .map(|n| (p.to_path_buf(), n.to_string())))
         .or_else(|| {
-            error!("CANTAL_PATH is present, but can't be split into \
-                a directory and a filename. \
-                Probably contains som non-utf-8 characters.");
+            if warn {
+                error!("CANTAL_PATH is present, but can't be split into \
+                    a directory and a filename. \
+                    Probably contains som non-utf-8 characters.");
+            }
             None
         })
     })
 }
 
 #[cfg(unix)]
-fn path_from_env() -> (PathBuf, String) {
+pub fn path_from_env(warn: bool) -> (PathBuf, String) {
     use libc::{getpid, getuid};
 
-    if let Some((dir, name)) = configured_path() {
+    if let Some((dir, name)) = configured_path(warn) {
         (dir, name)
     } else {
         let (dir, name) = if let Some(dir) = env::var_os("XDG_RUNTIME_DIR") {
@@ -114,10 +61,12 @@ fn path_from_env() -> (PathBuf, String) {
             (PathBuf::from("/tmp"),
              format!("cantal.{}.{}", unsafe { getuid() }, unsafe { getpid() }))
         };
-        warn!(
-            "No CANTAL_PATH is set in the environment, using {:?}. \
-             The cantal-agent will be unable to discover it.",
-            dir.join(&name));
+        if warn {
+            warn!(
+                "No CANTAL_PATH is set in the environment, using {:?}. \
+                 The cantal-agent will be unable to discover it.",
+                dir.join(&name));
+        }
         (dir, name)
     }
 }
@@ -132,13 +81,12 @@ fn remove_if_exists(path: &Path) -> Result<(), Error> {
     }
 }
 
-#[cfg(unix)]
-
 /// Start publishing metrics
 #[cfg(unix)]
 pub fn start<'x, T: Collection + ?Sized>(coll: &'x T)
     -> Result<ActiveCollection<'x>, Error>
 {
+    use std::os::unix::io::AsRawFd;
     use self::ErrorEnum::*;
 
     struct Metric<'a> {
@@ -175,7 +123,7 @@ pub fn start<'x, T: Collection + ?Sized>(coll: &'x T)
     // TODO(tailhook) find out real page size
     values_size = (values_size + 4095) & !4095;
 
-    let (dir, name) = path_from_env();
+    let (dir, name) = path_from_env(true);
     let tmp_path = dir.join(format!("{}.tmp", name));
     let values_path = dir.join(format!("{}.values", name));
     let meta_path = dir.join(format!("{}.meta", name));
@@ -225,7 +173,7 @@ pub fn start<'x, T: Collection + ?Sized>(coll: &'x T)
             type_suffix=metric.raw_type.type_suffix().unwrap_or(""),
             key=metric.name)
             .expect("Can always write into buffer");
-        metric.pointer.assign(unsafe { ptr.offset(offset as isize) });
+        metric.pointer.copy_assign(unsafe { ptr.offset(offset as isize) });
         offset += metric.size;
         pointers.push(metric.pointer);
     }

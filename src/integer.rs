@@ -65,6 +65,14 @@ impl fmt::Display for Integer {
     }
 }
 
+impl fmt::Debug for Integer {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        write!(fmt, "Integer({})", unsafe {
+            &*self.pointer.load(Ordering::Relaxed)
+        }.load(Ordering::Relaxed))
+    }
+}
+
 impl Describe for Integer {
     fn raw_type(&self) -> RawType { RawType::Level(LevelKind::Signed) }
     fn raw_size(&self) -> usize { 8 }

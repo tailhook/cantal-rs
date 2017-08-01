@@ -53,6 +53,14 @@ impl fmt::Display for Counter {
     }
 }
 
+impl fmt::Debug for Counter {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        write!(fmt, "Counter({})", unsafe {
+            &*self.pointer.load(Ordering::Relaxed)
+        }.load(Ordering::Relaxed))
+    }
+}
+
 impl Describe for Counter {
     fn raw_type(&self) -> RawType { RawType::Counter }
     fn raw_size(&self) -> usize { 8 }

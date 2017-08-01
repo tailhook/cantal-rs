@@ -50,19 +50,46 @@ extern crate serde_json;
 
 mod collection;
 mod collections;
+mod error;
 mod json;
 mod name;
 mod names;
 mod print;
+mod read;
 mod value;
 
 mod counter;
 mod integer;
 
-pub use collection::{Collection, Visitor, ActiveCollection, start, Error};
+pub use collection::{Collection, Visitor, start};
 pub use counter::Counter;
+pub use error::Error;
 pub use integer::Integer;
 pub use json::Json;
 pub use name::{NameVisitor, Name};
 pub use print::print;
+pub use read::{start_with_reading};
 pub use value::{Value, RawType, LevelKind};
+
+use std::path::PathBuf;
+
+/// An active collection currently publishing metrics
+///
+/// It's basically a guard: if you drop it, metrics are not exported any more.
+#[cfg(unix)]
+pub struct ActiveCollection<'a> {
+    values_path: PathBuf,
+    meta_path: PathBuf,
+    metrics: Vec<&'a Value>,
+    mmap: *mut libc::c_void,
+    mmap_size: usize,
+}
+
+/// An active collection currently publishing metrics
+///
+/// It's basically a guard: if you drop it, metrics are not exported any more.
+///
+/// Note: not implemented for windows yet.
+#[cfg(windows)]
+pub struct ActiveCollection {
+}

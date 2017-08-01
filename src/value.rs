@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::fmt::{Display, Debug};
 
 use libc::c_void;
 use serde_json;
@@ -25,7 +25,7 @@ pub enum RawType {
 /// A value stored in a collection
 ///
 /// This is an umbrella trait that you can't implement outside of this crate.
-pub trait Value: Display + Describe + Assign {
+pub trait Value: Display + Debug + Describe + Assign {
 }
 
 pub trait Assign {
