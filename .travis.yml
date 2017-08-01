@@ -1,0 +1,16 @@
+language: rust
+rust:
+- stable
+- beta
+- nightly
+sudo: false
+
+deploy:
+  provider: script
+  script: |
+    cargo publish --token=$CARGO_TOKEN
+  env:
+  - secure: "oY1FgcLcpzHi37UhnXCzvf7loUafAB5+ry1Nonyybw9UJH1rq19l4RV3CBtnYqo5GQZoQ1S1THsP1yZS3Xf92haVC3B8n0RTKFqA6VQgrBQU8xIAPdL2CQdT47XiRmJ79QkocvUgsGNIqTn5u4cKO2khofJgesGfHCnl+bquEXbrGGo2N85+B2MYGYetJBRIUhJCHfCQQo3Il3tPAFi5Fu4TDbYZ3s8xAE1lweIkxO0XVy0B6PQXh4iCtV4iQz+Rdl2t8hG2qKuVCZbKGLdNReCA1tq2W5yx5xrE9PcCbx4IbQSpEzXU+Iu4uBXrgMOPmKqEtMP9lHAoH60uw2/37pHFErmWKSiGNGQYgs/GXMb/HVlmH7NKQ3QWWaeXyET5Y9NScBAoWl90Zn1mcxry7BteVFCSavRYuOemCNpnlANwu/Xqru7cwxe9vh2FFCJ16tk+BiXNK+foF5YyG4+7W7q8CAMB/J7mQ+JBDd1D7c1EeDiSTzU8i1Vtho8ubZnbnGrEMKue6oeq+3u1/IkqTh1234ePhkRdI79vjRizl13VPpECL1LKY2xeO+bXU5jbucR+b8JFlOjVDvEAYw1frO4002tooQojLjBSBKlPm9V/RpfsnIOmEex+8XOITh5Ej1ztbBqZ89yA/JlQh5CnpmxitOR7DUfas1rgR2VwLi0="
+  on:
+    condition: '$TRAVIS_RUST_VERSION = "stable"'
+    tags: true
