@@ -2,7 +2,7 @@
 cantal-rs
 =========
 
-:Status: Pre-Alpha
+:Status: Beta
 :Documentation: http://docs.rs/libcantal/
 
 
