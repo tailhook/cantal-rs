@@ -30,6 +30,7 @@ pub trait Value: Display + Describe + Assign {
 
 pub trait Assign {
     fn assign(&self, ptr: *mut c_void);
+    fn copy_assign(&self, ptr: *mut c_void);
     fn reset(&self);
 }
 

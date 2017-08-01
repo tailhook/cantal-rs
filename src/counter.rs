@@ -62,10 +62,20 @@ impl Describe for Counter {
 }
 
 impl Assign for Counter {
+    fn copy_assign(&self, ptr: *mut c_void) {
+        let value = self.value.load(Ordering::SeqCst);
+        let ptr: *mut Atomic<u64> = unsafe { transmute(ptr) };
+        unsafe { (*ptr).store(value, Ordering::SeqCst) };
+        self.pointer.store(ptr, Ordering::SeqCst);
+    }
     fn assign(&self, ptr: *mut c_void) {
-        self.pointer.store(unsafe { transmute(ptr) }, Ordering::SeqCst);
+        self.pointer.store( unsafe { transmute(ptr) }, Ordering::SeqCst);
     }
     fn reset(&self) {
+        let old_value = unsafe {
+            &*self.pointer.load(Ordering::SeqCst)
+        }.load(Ordering::SeqCst);
+        self.value.store(old_value, Ordering::SeqCst);
         self.pointer.store(unsafe { transmute(&*self.value) },
                            Ordering::SeqCst);
     }
