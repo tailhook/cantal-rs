@@ -91,5 +91,6 @@ pub struct ActiveCollection<'a> {
 ///
 /// Note: not implemented for windows yet.
 #[cfg(windows)]
-pub struct ActiveCollection {
+pub struct ActiveCollection<'a> {
+    phantom: ::std::marker::PhantomData<&'a ()>
 }
