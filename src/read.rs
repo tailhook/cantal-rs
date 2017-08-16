@@ -59,7 +59,8 @@ pub fn start_with_reading<'x, T: Collection + ?Sized>(coll: &'x T)
     }
 }
 
-pub fn read_and_map<'x, T: Collection + ?Sized>(coll: &'x T)
+#[cfg(unix)]
+fn read_and_map<'x, T: Collection + ?Sized>(coll: &'x T)
     -> Result<Option<ActiveCollection<'x>>, Error>
 {
     use std::os::unix::io::AsRawFd;
