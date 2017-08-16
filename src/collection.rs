@@ -197,10 +197,9 @@ pub fn start<'x, T: Collection + ?Sized>(coll: &'x T)
 pub fn start<'x, T: Collection + ?Sized>(coll: &'x T)
     -> Result<ActiveCollection<'x>, Error>
 {
-    // TODO(tailhook) maybe always put into temporary directory?
-    ActiveCollection {
+    Ok(ActiveCollection {
         phantom: ::std::marker::PhantomData,
-    }
+    })
 }
 
 #[cfg(unix)]

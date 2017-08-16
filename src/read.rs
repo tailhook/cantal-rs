@@ -7,7 +7,7 @@ use libc;
 use serde_json::{to_string, to_value};
 use json::JsonName;
 
-use collection::{start, path_from_env};
+use collection::{start};
 
 use error::{Error, ErrorEnum};
 use {Name, Value, Visitor, Collection, ActiveCollection};
@@ -64,6 +64,8 @@ fn read_and_map<'x, T: Collection + ?Sized>(coll: &'x T)
     -> Result<Option<ActiveCollection<'x>>, Error>
 {
     use std::os::unix::io::AsRawFd;
+    use collection::path_from_env;
+
     let (dir, name) = path_from_env(false); // will warn in start
     let values_path = dir.join(format!("{}.values", name));
     let meta_path = dir.join(format!("{}.meta", name));
