@@ -9,7 +9,7 @@ keywords = ["linux", "monitoring", "meter"]
 categories = ["api-bindings"]
 homepage = "https://github.com/tailhook/cantal-rs"
 documentation = "https://docs.rs/libcantal/"
-version = "0.3.1"
+version = "0.3.2"
 authors = ["paul@colomiets.name"]
 
 [dependencies]
