@@ -7,8 +7,8 @@ license = "MIT/Apache-2.0"
 readme = "README.rst"
 keywords = ["linux", "monitoring", "meter"]
 categories = ["api-bindings"]
-homepage = "http://github.com/tailhook/libcantal"
-documentation = "http://tailhook.github.io/libcantal/"
+homepage = "https://github.com/tailhook/cantal-rs"
+documentation = "https://docs.rs/libcantal/"
 version = "0.3.1"
 authors = ["paul@colomiets.name"]
 
