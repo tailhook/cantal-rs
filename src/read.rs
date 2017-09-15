@@ -140,7 +140,7 @@ fn read_and_map<'x, T: Collection + ?Sized>(coll: &'x T)
         let mut pair = line.splitn(2, ":");
         let mut type_iter = pair.next().unwrap().split(' ');
         let kind = type_iter.next().unwrap();
-        let size = type_iter.next()
+        let size: isize = type_iter.next()
             .ok_or_else(|| ErrorEnum::InvalidMeta(
                 meta_path.clone(), "Unsized type"))?
             .parse().map_err(|_| ErrorEnum::InvalidMeta(
